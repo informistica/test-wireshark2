@@ -20,8 +20,6 @@ Leggere il codice e l'output delle quattro parti:
 
 1. **Sequenziale:** tre attese da 1 s una dopo l'altra, circa 3 s in tutto.
 2. **Thread:** le stesse attese con `threading.Thread(target=..., args=(...))`, `start()` e `join()`, circa 1 s in tutto.
-3. **Un calcolo per thread:** come i client dell'attività 3, ogni thread ha i suoi dati e salva il risultato.
-4. **Dati condivisi:** più thread modificano lo stesso contatore, protetto da un `Lock`.
 
 Prima di proseguire bisogna saper spiegare cosa fanno `start()` e `join()` e perché l'ordine delle stampe può cambiare.
 
