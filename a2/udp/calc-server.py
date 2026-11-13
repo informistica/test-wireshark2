@@ -10,6 +10,7 @@ s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 # Associa il socket all'indirizzo e alla porta specificati
 s.bind((SERVER_IP, SERVER_PORT))
+print(f"Server in ascolto su {SERVER_IP}:{SERVER_PORT}...")  # Stampa un messaggio per indicare che il server è pronto ad ascoltare
 
 # Inizio del ciclo principale del server: ascolta continuamente le richieste dei client
 while True:
