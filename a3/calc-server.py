@@ -1,5 +1,4 @@
 # calc-server.py — copia di calcolatrice_server.py (v4) per il laboratorio.
-# UNICA modifica: listen(5) -> listen(32). Tutto il resto è identico all’originale.
 #Server
 import socket
 import json
@@ -48,7 +47,7 @@ def avvia_server(indirizzo, porta):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock_server:
         sock_server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock_server.bind((indirizzo, porta))
-        sock_server.listen(32)  # LAB: coda 32 (originale 5) per accogliere 15 SYN contemporanei senza scarti
+        sock_server.listen(32)  # LAB: coda 32 per accogliere 15 SYN contemporanei senza scarti
         while True:
             ricevi_connessioni(sock_server)
             print(f" ---- Server in ascolto su {indirizzo}:{porta} ----")

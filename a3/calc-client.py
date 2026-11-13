@@ -1,49 +1,64 @@
-"""Client del laboratorio (Attività 3): 15 thread, richieste fisse e note, originali invariati.
+"""Client del laboratorio (Attività 3): 15 thread, richieste fisse e note.
 
 Il thread i (1..15) invia {"primoNumero":10+i,"operazione":"+","secondoNumero":20}
-e si aspetta 30+i: richieste tutte da 54 byte, risposte tutte da 2 byte.
+e si aspetta 30+i. Ogni thread misura il tempo impiegato per la connessione, l'invio e la ricezione della risposta.
 Ogni thread apre la PROPRIA connessione TCP verso 127.0.0.1:22224.
 """
-import json
-import socket
-import threading
-import time
 
-HOST = "127.0.0.1"
-PORT = 22224
-NUM_WORKERS = 15
-partenza = threading.Barrier(NUM_WORKERS)  # i 15 thread chiamano connect insieme
-stampa = threading.Lock()
+# Client TCP multithread che invia NUM_WORKERS richieste contemporanee al server
+# Ogni richiesta contiene un'operazione aritmetica da eseguire
 
+import socket         # Per la comunicazione di rete
+import json           # Per la codifica/decodifica JSON
+import time           # Per misurare i tempi di esecuzione
+import threading      # Per gestire l'esecuzione parallela (multithreading)
 
-def richiesta(i):
-    msg = {"primoNumero": 10 + i, "operazione": "+", "secondoNumero": 20}
-    return json.dumps(msg, separators=(",", ":"), ensure_ascii=True).encode("ascii")
+# --- Configurazione ---
+HOST = "127.0.0.1"           # IP del server
+PORT = 22224                # Porta del server (assicurarsi che il server stia ascoltando su questa)
+NUM_WORKERS = 15            # Numero di richieste (thread) da inviare in parallelo
 
 
-def lavoratore(i):
-    payload = richiesta(i)
-    partenza.wait()
-    inizio = time.perf_counter()  # appena prima di connect (≈ SYN)
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.settimeout(5)
-        sock.connect((HOST, PORT))
-        porta_locale = sock.getsockname()[1]
-        sock.sendall(payload)
-        risposta = sock.recv(1024)
-    fine = time.perf_counter()  # subito dopo la chiusura (≈ FIN del client)
-    with stampa:
-        print(f"Thread-{i:02d} porta client {porta_locale} richiesta {payload.decode()} "
-              f"({len(payload)} byte) risposta {risposta.decode()} ({len(risposta)} byte) "
-              f"tempo {fine - inizio:.6f} s", flush=True)
+# Funzione eseguita da ogni thread per inviare una richiesta al server
+def genera_richieste(address, port,i):
+    # Crea una connessione TCP al server
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock_service:
+        sock_service.connect((address, port))  # Connessione al server
 
+        msg = {"primoNumero": 10 + i, "operazione": "+", "secondoNumero": 20}
+        payload = json.dumps(msg).encode("UTF-8")
 
+        # Invia il messaggio al server codificandolo in UTF-8
+        sock_service.sendall(payload)
+
+        # Inizio del timer per misurare il tempo di risposta
+        start_time_thread = time.time()
+
+        # Riceve il risultato dal server (fino a 1024 byte)
+        data = sock_service.recv(1024)
+
+    # Fine del timer e stampa dei risultati
+    end_time_thread = time.time()
+    print("Received: ", data.decode())
+    print(f"{threading.current_thread().name} exec time = ", end_time_thread - start_time_thread)
+
+# --- Punto di ingresso del programma ---
 if __name__ == "__main__":
-    t0 = time.perf_counter()
-    threads = [threading.Thread(target=lavoratore, args=(i,), name=f"Thread-{i:02d}")
-               for i in range(1, NUM_WORKERS + 1)]
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join()
-    print(f"Tempo totale impiegato = {time.perf_counter() - t0:.6f} s")
+    start_time = time.time()  # Tempo di inizio totale
+
+    # Crea una lista di thread che eseguono la funzione `genera_richieste`
+    threads = [
+        threading.Thread(target=genera_richieste, args=(HOST, PORT,i), name=f"Thread-{i}")
+        for i in range(NUM_WORKERS)
+    ]
+
+    # Avvia tutti i thread
+    [thread.start() for thread in threads]
+
+    # Attende che tutti i thread abbiano completato
+    [thread.join() for thread in threads]
+
+    end_time = time.time()  # Tempo di fine totale
+
+    # Stampa il tempo complessivo impiegato per eseguire tutte le richieste
+    print("Tempo totale impiegato = ", end_time - start_time)
