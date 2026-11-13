@@ -8,7 +8,7 @@ mentre un thread aspetta (rete, disco, sleep), un altro lavora.
 Eseguire con:  python ripasso_thread.py
 """
 
-import threading
+from threading import Thread, Lock
 import time
 
 
@@ -37,7 +37,7 @@ inizio = time.time()
 lista_thread = []
 for i in range(1, 4):
     # target = funzione da eseguire, args = i suoi parametri (tupla!)
-    t = threading.Thread(target=servi_cliente, args=(i,))
+    t = Thread(target=servi_cliente, args=(i,))
     t.start()                          # il thread parte SUBITO, il for continua
     lista_thread.append(t)
 
@@ -46,56 +46,4 @@ for t in lista_thread:
 print(f"  Tempo totale: {time.time() - inizio:.1f} s\n")   # circa 1 s
 # Nota: l'ordine dei messaggi "inizio/fine" può cambiare a ogni esecuzione.
 
-
-# ---------------------------------------------------------------------------
-# PARTE 3 - Ogni thread fa un calcolo diverso (come i 15 client della v4)
-# ---------------------------------------------------------------------------
-risultati = {}                         # dizionario condiviso tra i thread
-
-def calcola(id_thread, a, b):
-    time.sleep(0.5)                    # simula il viaggio in rete
-    risultati[id_thread] = a + b
-    print(f"  thread {id_thread}: {a} + {b} = {a + b}")
-
-print("PARTE 3 - 5 thread, ognuno con la sua operazione")
-lista_thread = [threading.Thread(target=calcola, args=(i, 10 + i, 20))
-                for i in range(1, 6)]
-for t in lista_thread:
-    t.start()
-for t in lista_thread:
-    t.join()
-print(f"  Risultati raccolti: {dict(sorted(risultati.items()))}\n")
-
-
-# ---------------------------------------------------------------------------
-# PARTE 4 - Dati condivisi: serve un Lock
-# ---------------------------------------------------------------------------
-# Se più thread modificano la stessa variabile, le modifiche si possono
-# "sovrapporre". Il Lock garantisce che una sola modifica alla volta avvenga.
-contatore = 0
-lucchetto = threading.Lock()
-
-def incrementa(volte):
-    global contatore
-    for _ in range(volte):
-        with lucchetto:                # entra uno alla volta
-            contatore += 1
-
-print("PARTE 4 - 4 thread incrementano lo stesso contatore")
-lista_thread = [threading.Thread(target=incrementa, args=(100_000,)) for _ in range(4)]
-for t in lista_thread:
-    t.start()
-for t in lista_thread:
-    t.join()
-print(f"  Contatore finale: {contatore} (atteso 400000)\n")
-
-
-# ---------------------------------------------------------------------------
-# COLLEGAMENTO CON IL LABORATORIO
-# ---------------------------------------------------------------------------
-# - client v4: crea 15 thread; ognuno apre il SUO socket TCP, invia la sua
-#   richiesta JSON e aspetta la risposta  -> in Wireshark vedrai 15 tcp.stream.
-# - server v4: per ogni connessione accettata (accept) avvia un thread che
-#   serve quel client, così il server non resta bloccato su un solo cliente.
-# Domanda da porsi prima della cattura: se i 15 thread partono insieme,
-# in che ordine arriveranno le connessioni al server?
+ 
